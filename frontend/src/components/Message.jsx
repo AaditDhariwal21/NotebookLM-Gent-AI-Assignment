@@ -62,6 +62,11 @@ export default function Message({ message }) {
           renderWithCitations(message.content, sources, (n) => setOpenSource(n))
         )}
       </div>
+      {message.provider === 'groq' && (
+        <span className="provider-badge" title="Primary provider rate-limited; this answer was served by the Groq fallback.">
+          served by groq
+        </span>
+      )}
       {sources.length > 0 && (
         <div className="sources">
           <span className="label">Sources</span>

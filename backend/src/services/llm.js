@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { getOpenAI } from './openaiClient.js';
+import { getGroq, hasGroqFallback } from './groqClient.js';
 import { withRetry } from './retry.js';
 
 const REFUSAL = 'I could not find this information in the uploaded document.';
@@ -25,29 +26,58 @@ function buildHistory(history = []) {
     .map((m) => ({ role: m.role, content: String(m.content) }));
 }
 
+function callChat(client, model, messages) {
+  return client.chat.completions.create({
+    model,
+    temperature: 0,
+    messages,
+  });
+}
+
+function isRetryableUpstreamFailure(err) {
+  const status = err?.status ?? err?.response?.status ?? 0;
+  return status === 429 || (status >= 500 && status < 600);
+}
+
 export async function answerWithContext({ question, chunks, history }) {
   if (!chunks || chunks.length === 0) {
-    return { answer: REFUSAL, usedFallback: true };
+    return { answer: REFUSAL, provider: 'none' };
   }
-  const openai = getOpenAI();
-  const userPrompt = `Context passages:\n\n${buildContext(chunks)}\n\nQuestion: ${question}`;
 
-  const response = await withRetry(
-    () =>
-      openai.chat.completions.create({
-        model: config.chatModel,
-        temperature: 0,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...buildHistory(history),
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    { label: 'chat.completions' },
-  );
+  const userPrompt = `Context passages:\n\n${buildContext(chunks)}\n\nQuestion: ${question}`;
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...buildHistory(history),
+    { role: 'user', content: userPrompt },
+  ];
+
+  let response;
+  let provider = 'primary';
+
+  try {
+    response = await withRetry(
+      () => callChat(getOpenAI(), config.chatModel, messages),
+      { label: `chat[${config.chatModel}]` },
+    );
+  } catch (err) {
+    const groq = getGroq();
+    if (groq && isRetryableUpstreamFailure(err)) {
+      console.warn(
+        `[fallback] primary chat exhausted retries (status ${err.status ?? '?'}); switching to Groq (${config.groqChatModel})`,
+      );
+      response = await withRetry(
+        () => callChat(groq, config.groqChatModel, messages),
+        { label: `chat[groq:${config.groqChatModel}]` },
+      );
+      provider = 'groq';
+    } else {
+      throw err;
+    }
+  }
 
   const answer = response.choices?.[0]?.message?.content?.trim() ?? REFUSAL;
-  return { answer, usedFallback: false };
+  return { answer, provider };
 }
 
 export const REFUSAL_MESSAGE = REFUSAL;
+export { hasGroqFallback };

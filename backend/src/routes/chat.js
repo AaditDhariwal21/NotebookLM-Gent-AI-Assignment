@@ -27,7 +27,7 @@ chatRouter.post('/', async (req, res, next) => {
       });
     }
 
-    const { answer } = await answerWithContext({
+    const { answer, provider } = await answerWithContext({
       question: question.trim(),
       chunks: matches,
       history,
@@ -35,6 +35,7 @@ chatRouter.post('/', async (req, res, next) => {
 
     res.json({
       answer,
+      provider, // "primary" or "groq" — frontend uses this to show a fallback badge.
       sources: matches.map((m, i) => ({
         citation: i + 1,
         documentId: m.documentId,

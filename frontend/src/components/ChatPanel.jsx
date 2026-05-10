@@ -57,6 +57,7 @@ export default function ChatPanel({ documents, selectedIds }) {
                 pending: false,
                 content: result.answer,
                 sources: result.sources || [],
+                provider: result.provider,
               }
             : msg,
         ),

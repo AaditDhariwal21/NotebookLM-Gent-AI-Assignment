@@ -16,6 +16,10 @@ export const config = {
   openaiBaseUrl: process.env.OPENAI_BASE_URL || '',
   embeddingModel: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
   chatModel: process.env.CHAT_MODEL || 'gpt-4o-mini',
+  // Optional Groq fallback for the chat step. (Groq offers no embedding model,
+  // so embeddings always go through the primary provider.)
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  groqChatModel: process.env.GROQ_CHAT_MODEL || 'llama-3.3-70b-versatile',
   chunkSize: int(process.env.CHUNK_SIZE, 1200),
   chunkOverlap: int(process.env.CHUNK_OVERLAP, 200),
   topK: int(process.env.TOP_K, 5),
