@@ -86,7 +86,7 @@ export default function DocumentPanel({
             </>
           )}
         </div>
-        <div className="upload-sub">PDF or TXT · up to 25 MB</div>
+        <div className="upload-sub">PDF or TXT · up to 4 MB</div>
       </label>
 
       {error && <div className="error sidebar-error">{error}</div>}
