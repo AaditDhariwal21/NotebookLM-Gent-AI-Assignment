@@ -4,18 +4,40 @@ import { randomUUID } from 'node:crypto';
 import { config } from '../config.js';
 
 /**
- * Lightweight on-disk vector store.
+ * Lightweight vector store with two interchangeable backends:
  *
- * Why hand-rolled instead of ChromaDB? Chroma's JS client requires running a
- * separate Chroma server, which complicates one-command deployment. For a
- * corpus of dozens of documents and tens of thousands of chunks, a brute-force
- * cosine scan in memory is well under 50 ms — fast enough that swapping in
- * Chroma would be premature. The shape of this module mirrors a typical
- * vector-DB surface (addDocument / search / listDocuments / deleteDocument)
- * so swapping the backend later is a localized change.
+ *   • Upstash Redis (HTTP) — used in production. Detected via the env vars
+ *     that Vercel's Upstash integration injects (KV_REST_API_URL +
+ *     KV_REST_API_TOKEN, or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN).
+ *     Survives function cold starts; required because Vercel's serverless
+ *     filesystem is per-invocation.
+ *
+ *   • Local JSON file — used in development and on hosts with a writable
+ *     disk. State is persisted as a single JSON document.
+ *
+ * The interface (addDocument / search / listDocuments / deleteDocument /
+ * stats) is identical across backends, so the rest of the app is oblivious
+ * to which one is in use.
  */
 
-let state = null; // { documents: Record<string, DocMeta>, chunks: Chunk[] }
+const STATE_KEY = 'marginalia:store';
+
+const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const useKV = !!(REDIS_URL && REDIS_TOKEN);
+
+let kvClient = null;
+async function getKv() {
+  if (!kvClient) {
+    const { Redis } = await import('@upstash/redis');
+    kvClient = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
+  }
+  return kvClient;
+}
+
+const empty = () => ({ documents: {}, chunks: [] });
+
+let state = null;
 let loadPromise = null;
 let writeQueue = Promise.resolve();
 
@@ -23,15 +45,20 @@ async function load() {
   if (state) return state;
   if (loadPromise) return loadPromise;
   loadPromise = (async () => {
-    await fs.mkdir(path.dirname(config.storeFile), { recursive: true });
-    try {
-      const raw = await fs.readFile(config.storeFile, 'utf8');
-      state = JSON.parse(raw);
-      if (!state.documents) state.documents = {};
-      if (!state.chunks) state.chunks = [];
-    } catch (err) {
-      if (err.code !== 'ENOENT') throw err;
-      state = { documents: {}, chunks: [] };
+    if (useKV) {
+      const kv = await getKv();
+      state = (await kv.get(STATE_KEY)) || empty();
+    } else {
+      await fs.mkdir(path.dirname(config.storeFile), { recursive: true });
+      try {
+        const raw = await fs.readFile(config.storeFile, 'utf8');
+        state = JSON.parse(raw);
+        if (!state.documents) state.documents = {};
+        if (!state.chunks) state.chunks = [];
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+        state = empty();
+      }
     }
     return state;
   })();
@@ -39,11 +66,16 @@ async function load() {
 }
 
 function persist() {
-  // Serialize writes so two parallel uploads cannot interleave a partial JSON.
+  // Serialize writes so two parallel uploads cannot interleave.
   writeQueue = writeQueue.then(async () => {
-    const tmp = `${config.storeFile}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(state));
-    await fs.rename(tmp, config.storeFile);
+    if (useKV) {
+      const kv = await getKv();
+      await kv.set(STATE_KEY, state);
+    } else {
+      const tmp = `${config.storeFile}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(state));
+      await fs.rename(tmp, config.storeFile);
+    }
   });
   return writeQueue;
 }
@@ -136,5 +168,6 @@ export async function stats() {
   return {
     documents: Object.keys(state.documents).length,
     chunks: state.chunks.length,
+    backend: useKV ? 'kv' : 'fs',
   };
 }

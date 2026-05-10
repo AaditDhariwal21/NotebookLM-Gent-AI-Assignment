@@ -1,16 +1,18 @@
 import { Router } from 'express';
 import multer from 'multer';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { config } from '../config.js';
 import { extractText } from '../services/extractor.js';
 import { recursiveSplit } from '../services/chunker.js';
 import { embedTexts } from '../services/embeddings.js';
 import { addDocument, deleteDocument, listDocuments } from '../services/vectorStore.js';
+import { config } from '../config.js';
 
+// memoryStorage keeps the uploaded bytes in RAM rather than on disk — required
+// for serverless platforms (Vercel) where /tmp is per-invocation.
 const upload = multer({
-  dest: config.uploadsDir,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+  storage: multer.memoryStorage(),
+  // 4 MB matches Vercel Hobby's body-size limit. Bump if running on a host
+  // with a larger limit (Render, self-host, Vercel Pro).
+  limits: { fileSize: 4 * 1024 * 1024 },
 });
 
 export const documentsRouter = Router();
@@ -27,13 +29,12 @@ documentsRouter.post('/', upload.single('file'), async (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded. Use the "file" form field.' });
   }
-  const tmpPath = req.file.path;
   try {
-    const text = await extractText(tmpPath, req.file.mimetype, req.file.originalname);
+    const text = await extractText(req.file.buffer, req.file.mimetype, req.file.originalname);
     if (!text || text.length < 20) {
       return res.status(422).json({
         error:
-          'No usable text could be extracted from this file. If it is a scanned PDF, OCR is required (not supported).',
+          'No usable text could be extracted. If this is a scanned PDF, OCR is required (not supported).',
       });
     }
     const chunks = recursiveSplit(text, {
@@ -55,8 +56,6 @@ documentsRouter.post('/', upload.single('file'), async (req, res, next) => {
     });
   } catch (err) {
     next(err);
-  } finally {
-    fs.unlink(tmpPath).catch(() => {});
   }
 });
 
@@ -70,9 +69,14 @@ documentsRouter.delete('/:id', async (req, res, next) => {
   }
 });
 
-// Make multer error messages friendlier (e.g. file too large).
 documentsRouter.use((err, _req, res, next) => {
   if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error:
+          'File is too large. Hosted demo accepts files up to 4 MB; trim the document or run locally for larger uploads.',
+      });
+    }
     return res.status(400).json({ error: err.message });
   }
   next(err);

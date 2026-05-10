@@ -1,4 +1,3 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
@@ -7,11 +6,11 @@ const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
 /**
- * Extract raw text from an uploaded file. Supports PDF and plain text.
+ * Extract raw text from an in-memory buffer. Supports PDF and plain text.
  * Returns a normalized string with collapsed whitespace.
  */
-export async function extractText(filePath, mimeType, originalName) {
-  const ext = path.extname(originalName || filePath).toLowerCase();
+export async function extractText(buffer, mimeType, originalName) {
+  const ext = path.extname(originalName || '').toLowerCase();
   const isPdf = mimeType === 'application/pdf' || ext === '.pdf';
   const isText =
     mimeType === 'text/plain' ||
@@ -23,7 +22,6 @@ export async function extractText(filePath, mimeType, originalName) {
     throw new Error(`Unsupported file type: ${mimeType || ext}. Only .pdf and .txt are accepted.`);
   }
 
-  const buffer = await fs.readFile(filePath);
   let raw;
   if (isPdf) {
     const parsed = await pdfParse(buffer);
@@ -37,7 +35,7 @@ export async function extractText(filePath, mimeType, originalName) {
 function normalize(text) {
   return text
     .replace(/\r\n?/g, '\n')
-    .replace(/ /g, ' ')
+    .replace(/ /g, ' ')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

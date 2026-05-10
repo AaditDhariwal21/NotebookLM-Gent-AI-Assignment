@@ -20,7 +20,6 @@ export const config = {
   chunkOverlap: int(process.env.CHUNK_OVERLAP, 200),
   topK: int(process.env.TOP_K, 5),
   dataDir: path.resolve(backendRoot, process.env.DATA_DIR || 'data'),
-  uploadsDir: path.resolve(backendRoot, process.env.DATA_DIR || 'data', 'uploads'),
   storeFile: path.resolve(backendRoot, process.env.DATA_DIR || 'data', 'vector-store.json'),
 };
 

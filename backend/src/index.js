@@ -1,13 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import fs from 'node:fs/promises';
 import { config, assertConfig } from './config.js';
 import { documentsRouter } from './routes/documents.js';
 import { chatRouter } from './routes/chat.js';
 import { stats } from './services/vectorStore.js';
 
 assertConfig();
-await fs.mkdir(config.uploadsDir, { recursive: true });
 
 const app = express();
 app.use(cors());
