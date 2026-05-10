@@ -19,7 +19,7 @@ export default function DocumentPanel({
     setError('');
     try {
       for (const file of files) {
-        setProgressMsg(`Uploading ${file.name}…`);
+        setProgressMsg(`Reading ${file.name}…`);
         await uploadDocument(file);
       }
       setProgressMsg('');
@@ -34,7 +34,7 @@ export default function DocumentPanel({
   }
 
   async function handleDelete(id, name) {
-    if (!confirm(`Remove "${name}" and its embeddings?`)) return;
+    if (!confirm(`Take "${name}" off the shelf? Its embeddings will be removed.`)) return;
     try {
       await deleteDocument(id);
       await onChange();
@@ -51,11 +51,9 @@ export default function DocumentPanel({
       <header>
         <div className="brand">
           <span className="brand-dot" aria-hidden="true" />
-          <span className="brand-name">
-            Notebook <em>llm</em>
-          </span>
+          <span className="brand-name">Marginalia</span>
         </div>
-        <span className="label sidebar-tagline">Grounded answers · cited sources</span>
+        <span className="label sidebar-tagline">read · ask · cite</span>
       </header>
 
       <label
@@ -84,29 +82,29 @@ export default function DocumentPanel({
             progressMsg || 'Working…'
           ) : (
             <>
-              Drop a document <em>or browse</em>
+              Bring in a <em>new source</em>
             </>
           )}
         </div>
-        <div className="upload-sub">PDF · TXT · ≤ 25 MB</div>
+        <div className="upload-sub">PDF or TXT · up to 25 MB</div>
       </label>
 
       {error && <div className="error sidebar-error">{error}</div>}
 
       <div className="sources-head">
-        <span className="label">Sources</span>
+        <span className="label">Shelf</span>
         {documents.length > 0 && (
           <span className="sources-count">
             {docCountLabel}
             <em>·</em>
-            {totalChunks} chunks
+            {totalChunks} {totalChunks === 1 ? 'passage' : 'passages'}
           </span>
         )}
       </div>
 
       <ul className="doc-list">
         {documents.length === 0 && (
-          <li className="doc-empty">No sources yet — drop one in to begin.</li>
+          <li className="doc-empty">The shelf is bare. Add a paper to begin.</li>
         )}
         {documents.map((doc) => {
           const checked = selectedIds.includes(doc.id);
@@ -122,14 +120,16 @@ export default function DocumentPanel({
                   <span className="doc-name" title={doc.name}>
                     {doc.name}
                   </span>
-                  <span className="doc-sub">{doc.chunkCount} chunks</span>
+                  <span className="doc-sub">
+                    {doc.chunkCount} {doc.chunkCount === 1 ? 'passage' : 'passages'}
+                  </span>
                 </span>
               </label>
               <button
                 type="button"
                 className="doc-delete"
                 onClick={() => handleDelete(doc.id, doc.name)}
-                aria-label={`Delete ${doc.name}`}
+                aria-label={`Remove ${doc.name}`}
               >
                 ×
               </button>
@@ -140,7 +140,7 @@ export default function DocumentPanel({
 
       <div className="sidebar-footer">
         <span>gemini · cosine</span>
-        <span>v0.1</span>
+        <span>build 0.2</span>
       </div>
     </aside>
   );

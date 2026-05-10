@@ -3,7 +3,7 @@ import DocumentPanel from './components/DocumentPanel.jsx';
 import ChatPanel from './components/ChatPanel.jsx';
 import { listDocuments } from './api.js';
 
-const SELECTED_KEY = 'notebookrag.selected.v1';
+const SELECTED_KEY = 'marginalia.selected.v1';
 
 export default function App() {
   const [documents, setDocuments] = useState([]);

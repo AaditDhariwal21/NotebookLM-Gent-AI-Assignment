@@ -1,26 +1,26 @@
 :root {
   /* Sky paper palette */
-  --paper:        #e8f1f6;   /* pale icy blue */
-  --paper-2:      #f4f9fc;   /* card / upload bg */
-  --paper-3:      #d4e3eb;   /* deeper chip bg */
+  --paper:        #e6f0f8;   /* pale sky */
+  --paper-2:      #f4f9fd;   /* card / upload bg */
+  --paper-3:      #d1e3ee;   /* deeper chip bg */
 
-  /* Ink (deep slate-navy) */
-  --ink:          #0c2a3f;
-  --ink-soft:     #34607d;
-  --ink-muted:    #7896a9;
+  /* Ink (deep navy) */
+  --ink:          #0c2540;
+  --ink-soft:     #2c5675;
+  --ink-muted:    #708ba3;
 
   /* Lines */
-  --rule:         #b8d0dc;
-  --rule-soft:    #d6e3eb;
+  --rule:         #b6cfdc;
+  --rule-soft:    #d3e1ec;
 
-  /* Accent (cyan) */
-  --accent:       #0e7490;   /* cyan-700, refined */
-  --accent-soft:  #22b8d6;   /* cyan-500, bright */
-  --accent-glow:  rgba(34, 184, 214, 0.32);
+  /* Accent (sky) */
+  --accent:       #0284c7;   /* sky-600 */
+  --accent-soft:  #38bdf8;   /* sky-400 */
+  --accent-glow:  rgba(14, 165, 233, 0.30);
 
   /* Bubbles */
-  --user-bubble:  #d4e7f0;
-  --asst-bubble:  #f4f9fc;
+  --user-bubble:  #cee0ee;
+  --asst-bubble:  #f4f9fd;
 
   /* Typography */
   --font-serif:   'Cormorant Garamond', Georgia, 'Times New Roman', serif;
@@ -735,7 +735,7 @@ input {
 
 .composer:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.12);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
 }
 
 .composer textarea {
@@ -824,8 +824,8 @@ input {
 }
 
 .warn {
-  background: rgba(14, 116, 144, 0.06);
-  border-color: rgba(14, 116, 144, 0.3);
+  background: rgba(2, 132, 199, 0.06);
+  border-color: rgba(2, 132, 199, 0.3);
   color: var(--accent);
 }
 

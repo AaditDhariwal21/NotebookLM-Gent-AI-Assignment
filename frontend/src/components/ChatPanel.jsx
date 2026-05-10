@@ -3,9 +3,9 @@ import { askQuestion } from '../api.js';
 import Message from './Message.jsx';
 
 const SUGGESTIONS = [
-  'Summarize the key points',
-  'What are the main conclusions?',
-  'List any open questions',
+  'Walk me through the structure',
+  "What's the central argument?",
+  'Pull a key quote',
 ];
 
 export default function ChatPanel({ documents, selectedIds }) {
@@ -82,7 +82,7 @@ export default function ChatPanel({ documents, selectedIds }) {
 
   function clearHistory() {
     if (!messages.length) return;
-    if (!confirm('Clear the conversation?')) return;
+    if (!confirm('Close this thread and start over?')) return;
     setMessages([]);
     setError('');
   }
@@ -91,17 +91,17 @@ export default function ChatPanel({ documents, selectedIds }) {
     <section className="chat">
       <header className="chat-header">
         <div>
-          <span className="label">Conversation</span>
+          <span className="label">Reading room</span>
           <h1 className="chat-title">
             {noSources ? (
               <>
-                Awaiting your <em>first source</em>
+                Nothing on the <em>shelf yet</em>
               </>
             ) : (
               <>
-                Chatting with{' '}
+                Open across{' '}
                 <em>
-                  {activeCount} {activeCount === 1 ? 'source' : 'sources'}
+                  {activeCount} {activeCount === 1 ? 'paper' : 'papers'}
                 </em>
               </>
             )}
@@ -113,7 +113,7 @@ export default function ChatPanel({ documents, selectedIds }) {
           onClick={clearHistory}
           disabled={messages.length === 0}
         >
-          fresh start
+          close thread
         </button>
       </header>
 
@@ -121,15 +121,15 @@ export default function ChatPanel({ documents, selectedIds }) {
         {messages.length === 0 ? (
           <div className="empty">
             <h2 className="empty-headline">
-              Ask anything <em>grounded</em>
+              Every answer,
               <br />
-              in your documents.
+              <em>with the receipts.</em>
             </h2>
             <p className="empty-sub">
-              Answers come strictly from your uploaded sources, with inline citations
-              you can verify.
+              Ask anything about what's on your shelf. Each claim links back to the exact
+              passage it was drawn from — no outside knowledge, no guesswork.
             </p>
-            <span className="label">Try</span>
+            <span className="label">Try asking</span>
             <div className="suggestion-row">
               {SUGGESTIONS.map((s) => (
                 <button
@@ -164,31 +164,31 @@ export default function ChatPanel({ documents, selectedIds }) {
               }
             }}
             placeholder={
-              noSources ? 'Upload a document first…' : 'Ask about your sources…'
+              noSources ? 'Add a paper to start reading…' : 'Pose a question…'
             }
             rows={1}
             disabled={noSources || sending}
           />
           <button type="submit" className="send-btn" disabled={!canSend}>
             {sending ? (
-              'Thinking…'
+              'Reading…'
             ) : (
               <>
-                Send <span className="send-arrow" aria-hidden="true">→</span>
+                Ask <span className="send-arrow" aria-hidden="true">→</span>
               </>
             )}
           </button>
         </form>
         <div className="composer-helper">
-          <span>enter to send · shift+enter for newline</span>
-          <span>answers are cited from your sources</span>
+          <span>↵ to ask · shift + ↵ for a new line</span>
+          <span>every reply is sourced</span>
         </div>
       </div>
     </section>
   );
 }
 
-const HISTORY_KEY = 'notebookrag.history.v1';
+const HISTORY_KEY = 'marginalia.history.v1';
 
 function loadHistory() {
   try {
